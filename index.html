@@ -4,22 +4,142 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grok Sudoku</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {font-family: 'Segoe UI', sans-serif;display: flex;justify-content: center;align-items: center;min-height: 100vh;margin: 0;background: #f0f0f0;}
+        .sudoku-container {text-align: center;background: white;padding: 20px;border-radius: 12px;box-shadow: 0 4px 20px rgba(0,0,0,0.1);}
+        h1 {color: #1a73e8;}
+        table {border-collapse: collapse;margin: 20px auto;}
+        td {width: 50px;height: 50px;border: 1px solid #999;text-align: center;font-size: 24px;cursor: pointer;background: #fff;}
+        td.fixed {background: #f0f0f0;font-weight: bold;color: #333;}
+        td.selected {background: #e3f2fd !important;}
+        td:nth-child(3), td:nth-child(6) {border-right: 3px solid #333;}
+        tr:nth-child(3), tr:nth-child(6) {border-bottom: 3px solid #333;}
+        .controls {margin: 15px 0;}
+        button {padding: 10px 20px;margin: 5px;font-size: 16px;border: none;border-radius: 6px;cursor: pointer;}
+        .number-btn {background: #1a73e8;color: white;width: 50px;height: 50px;font-size: 20px;}
+        .erase {background: #f44336;}
+        .new-game {background: #34a853;}
+        .status {margin-top: 10px;font-size: 18px;min-height: 24px;}
+    </style>
 </head>
 <body>
-    <div class="container">
+    <div class="sudoku-container">
         <h1>🧩 Grok Sudoku</h1>
-        <p id="difficulty">Difficulty: Easy</p>
-        <div id="board" class="sudoku-board"></div>
+        <div id="board"></div>
         <div class="controls">
-            <button onclick="newGame()">New Game</button>
-            <button onclick="solvePuzzle()">Solve</button>
-            <button onclick="checkProgress()">Check</button>
-            <button onclick="clearBoard()">Clear</button>
+            <div id="numbers"></div>
+            <button class="erase" onclick="eraseCell()">Erase</button>
+            <button class="new-game" onclick="newGame()">New Game</button>
         </div>
-        <div id="message" class="message"></div>
+        <div class="status" id="status"></div>
     </div>
-
-    <script src="script.js"></script>
+    <script>
+        let board = [];
+        let solution = [];
+        let selectedRow = -1;
+        let selectedCol = -1;
+        function generateSudoku() {
+            return [
+                [5,3,0,0,7,0,0,0,0],[6,0,0,1,9,5,0,0,0],[0,9,8,0,0,0,0,6,0],
+                [8,0,0,0,6,0,0,0,3],[4,0,0,8,0,3,0,0,1],[7,0,0,0,2,0,0,0,6],
+                [0,6,0,0,0,0,2,8,0],[0,0,0,4,1,9,0,0,5],[0,0,0,0,8,0,0,7,9]
+            ];
+        }
+        function isValid(board, row, col, num) {
+            for (let x = 0; x < 9; x++) if (board[row][x] === num) return false;
+            for (let x = 0; x < 9; x++) if (board[x][col] === num) return false;
+            const sr = Math.floor(row / 3) * 3, sc = Math.floor(col / 3) * 3;
+            for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (board[i+sr][j+sc] === num) return false;
+            return true;
+        }
+        function solveSudoku(board) {
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (board[row][col] === 0) {
+                        for (let num = 1; num <= 9; num++) {
+                            if (isValid(board, row, col, num)) {
+                                board[row][col] = num;
+                                if (solveSudoku(board)) return true;
+                                board[row][col] = 0;
+                            }
+                        }
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        function createBoard() {
+            const container = document.getElementById('board');
+            container.innerHTML = '';
+            const table = document.createElement('table');
+            for (let row = 0; row < 9; row++) {
+                const tr = document.createElement('tr');
+                for (let col = 0; col < 9; col++) {
+                    const td = document.createElement('td');
+                    td.dataset.row = row; td.dataset.col = col;
+                    if (board[row][col] !== 0) {
+                        td.textContent = board[row][col];
+                        td.classList.add('fixed');
+                    }
+                    td.addEventListener('click', () => selectCell(row, col));
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            container.appendChild(table);
+        }
+        function selectCell(row, col) {
+            selectedRow = row; selectedCol = col;
+            document.querySelectorAll('td').forEach(c => c.classList.remove('selected'));
+            const cells = document.querySelectorAll('td');
+            for (let c of cells) {
+                if (+c.dataset.row === row && +c.dataset.col === col) { c.classList.add('selected'); break; }
+            }
+        }
+        function fillNumber(num) {
+            if (selectedRow < 0 || selectedCol < 0) return;
+            const cell = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+            if (cell && !cell.classList.contains('fixed')) {
+                board[selectedRow][selectedCol] = num;
+                cell.textContent = num;
+                if (isSolved()) {
+                    document.getElementById('status').innerHTML = '🎉 Congratulations! Puzzle solved!';
+                }
+            }
+        }
+        function eraseCell() {
+            if (selectedRow < 0 || selectedCol < 0) return;
+            const cell = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+            if (cell && !cell.classList.contains('fixed')) {
+                board[selectedRow][selectedCol] = 0;
+                cell.textContent = '';
+            }
+        }
+        function isSolved() {
+            for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (board[r][c] !== solution[r][c]) return false;
+            return true;
+        }
+        function createNumberButtons() {
+            const container = document.getElementById('numbers');
+            container.innerHTML = '';
+            for (let i = 1; i <= 9; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'number-btn';
+                btn.textContent = i;
+                btn.onclick = () => fillNumber(i);
+                container.appendChild(btn);
+            }
+        }
+        function newGame() {
+            board = generateSudoku().map(r => [...r]);
+            solution = board.map(r => [...r]);
+            solveSudoku(solution);
+            document.getElementById('status').textContent = '';
+            createBoard();
+            selectedRow = selectedCol = -1;
+        }
+        window.onload = () => { newGame(); createNumberButtons(); };
+    </script>
 </body>
 </html>
