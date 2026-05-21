@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Sudoku</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🧩 Grok Sudoku</h1>
+        <p id="difficulty">Difficulty: Easy</p>
+        <div id="board" class="sudoku-board"></div>
+        <div class="controls">
+            <button onclick="newGame()">New Game</button>
+            <button onclick="solvePuzzle()">Solve</button>
+            <button onclick="checkProgress()">Check</button>
+            <button onclick="clearBoard()">Clear</button>
+        </div>
+        <div id="message" class="message"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
